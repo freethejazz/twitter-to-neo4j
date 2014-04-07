@@ -1,0 +1,18 @@
+{
+  "name": "twitter-to-neo4j",
+  "version": "0.0.1",
+  "description": "",
+  "main": "test.js",
+  "dependencies": {
+    "twit": "~1.1.12",
+    "neo4j": "~1.1.0",
+    "q": "~1.0.1",
+    "multiline": "~0.3.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "freethejazz",
+  "license": "BSD"
+}
