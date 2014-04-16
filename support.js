@@ -10,10 +10,7 @@ var connector = module.exports;
 
 var getRateLimitInfo = function(resp) {
   if(!resp || !resp.headers) {
-    // crudely waiting blindly.  The exact time for the rate limit reset is
-    // available on the response object, but the twit module doesn't return
-    // the response when an error happens.  Issue already logged.
-    // https://github.com/ttezel/twit/pull/93
+    // This should never happen
     return {
       remainingRequests: 0,
       resetMs: Date.now() + (5 * 60 * 1000)
@@ -37,6 +34,53 @@ var scheduleNextCall = function(rateLimitInfo, nextMethod, optParam){
 
 var logger = function(msg) {
   console.log(new Date() + ' - ' + msg);
+}
+
+/**
+ * opts is an object that must have the following keys
+ *  - screen_name
+ *  - url
+ *  - cypherQuery
+ *  - onSuccess
+ *  - onError
+ **/
+var createBatchMethod = function(opts) {
+  var next_cursor = -1;
+
+  return function batchMethod(){
+    logger('Starting HTTP request');
+
+    T.get(opts.url, {screen_name: opts.screenName, count: 200, cursor: next_cursor, skip_status: true}, function(err, reply, resp){
+      var rateLimitInfo = getRateLimitInfo(resp), userList;
+
+      if(err) {
+        if(err.code == 88) {
+          scheduleNextCall(rateLimitInfo, batchMethod);
+        } else {
+          opts.onError(err);
+        }
+      } else {
+        userList = reply.users.map(TUser.staticToNeoData);
+
+        logger(opts.url + ' request completed, ' + rateLimitInfo.remainingRequests + ' requests remaining before rate limiting');
+        logger('Starting DB Query');
+
+        db.query(opts.cypherQuery, {userList: userList, screenName: opts.screenName}, function(err, arr){
+            logger('DB request completed');
+
+            if(err) {
+              opts.onError(err)
+            } else if(reply.next_cursor) {
+              next_cursor = reply.next_cursor;
+
+              scheduleNextCall(rateLimitInfo, batchMethod);
+            } else {
+              opts.onSuccess();
+            }
+          });
+      }
+    });
+  }
 }
 
 connector.getUserFromTwitter = function(handle) {
@@ -67,83 +111,31 @@ connector.cypherUpsertOne = function(user) {
 }
 
 connector.getWebForHandle = function(screen_name){
-  var response = new Q.defer();
-  var next_cursor = -1;
+  var followerResponse = new Q.defer();
+  var friendResponse = new Q.defer();
+
   logger('getting web for ' + screen_name);
 
-  function getFollowerBatch(){
-    logger('Starting HTTP request');
+  var getFollowersBatch = createBatchMethod({
+    screenName: screen_name,
+    url: 'followers/list',
+    cypherQuery: cypherQueries.upsertManyAndFollows,
+    onSuccess: followerResponse.resolve,
+    onError: followerResponse.reject
+  });
 
-    T.get('followers/list', {screen_name: screen_name, count: 2, cursor: next_cursor, skip_status: true}, function(err, reply, resp){
-      var rateLimitInfo = getRateLimitInfo(resp), userList;
+  var getFriendsBatch = createBatchMethod({
+    screenName: screen_name,
+    url: 'friends/list',
+    cypherQuery: cypherQueries.upsertManyAndFriends,
+    onSuccess: friendResponse.resolve,
+    onError: friendResponse.reject
+  });
 
-      if(err) {
-        if(err.code == 88) {
-          scheduleNextCall(rateLimitInfo, getFollowerBatch);
-        } else {
-          response.reject(err);
-        }
-      } else {
-        logger('Follow request completed, ' + rateLimitInfo.remainingRequests + ' requests remaining before rate limiting');
+  getFollowersBatch();
+  getFriendsBatch();
 
-        userList = reply.users.map(TUser.staticToNeoData);
-
-        logger('Starting DB Query');
-
-        db.query(cypherQueries.upsertManyAndFollows, {followers: userList, screenName: screen_name}, function(err, arr){
-            logger('DB request completed');
-
-            if(err) {
-              response.reject(err)
-            } else if(reply.next_cursor) {
-              next_cursor = reply.next_cursor;
-
-              scheduleNextCall(rateLimitInfo, getFollowerBatch);
-            } else {
-              next_cursor = -1;
-
-              return getFriendBatch();
-            }
-          });
-      }
-    });
-  }
-
-  function getFriendBatch(){
-    logger('Starting HTTP request');
-
-    T.get('friends/list', {screen_name: screen_name, count: 200, cursor: next_cursor, skip_status: true}, function(err, reply, resp){
-      var rateLimitInfo = getRateLimitInfo(resp), userList;
-
-      if(err) {
-        if(err.code == 88) {
-          scheduleNextCall(rateLimitInfo, getFriendBatch);
-        } else {
-          response.reject(err);
-        }
-      } else {
-        userList = reply.users.map(TUser.staticToNeoData);
-
-        logger('Friend request completed, ' + rateLimitInfo.remainingRequests + ' requests remaining before rate limiting');
-        logger('Starting DB Query');
-
-        db.query(cypherQueries.upsertManyAndFriends, {friends: userList, screenName: screen_name}, function(err, arr){
-            logger('DB request completed');
-
-            if(err) {
-              response.reject(err)
-            } else if(reply.next_cursor) {
-              next_cursor = reply.next_cursor;
-
-              scheduleNextCall(rateLimitInfo, getFriendBatch);
-            } else {
-              response.resolve();
-            }
-          });
-      }
-    });
-  }
-  getFollowerBatch();
-  return response.promise;
-
+  return Q.all([friendResponse.promise, followerResponse.promise]);
 }
+
+

@@ -1,10 +1,10 @@
 {
   "name": "twitter-to-neo4j",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "test.js",
   "dependencies": {
-    "twit": "~1.1.12",
+    "twit": "^1.1.13",
     "neo4j": "~1.1.0",
     "q": "~1.0.1",
     "multiline": "~0.3.0"
