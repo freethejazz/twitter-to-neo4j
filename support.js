@@ -24,7 +24,7 @@ var getRateLimitInfo = function(resp) {
 };
 
 var scheduleNextCall = function(rateLimitInfo, nextMethod, optParam){
-  if(rateLimitInfo.remainingRequests == 0) {
+  if(rateLimitInfo.remainingRequests === 0) {
     logger('Rate Limit Exceeded, waiting until '+ (new Date(rateLimitInfo.resetMs)));
     return setTimeout(nextMethod, rateLimitInfo.resetMs - Date.now(), optParam);
   } else {
@@ -34,7 +34,7 @@ var scheduleNextCall = function(rateLimitInfo, nextMethod, optParam){
 
 var logger = function(msg) {
   console.log(new Date() + ' - ' + msg);
-}
+};
 
 /**
  * opts is an object that must have the following keys
@@ -69,7 +69,7 @@ var createBatchMethod = function(opts) {
             logger('DB request completed');
 
             if(err) {
-              opts.onError(err)
+              opts.onError(err);
             } else if(reply.next_cursor) {
               next_cursor = reply.next_cursor;
 
@@ -80,8 +80,8 @@ var createBatchMethod = function(opts) {
           });
       }
     });
-  }
-}
+  };
+};
 
 connector.getUserFromTwitter = function(handle) {
   var response = Q.defer();
@@ -94,7 +94,7 @@ connector.getUserFromTwitter = function(handle) {
   });
 
   return response.promise;
-}
+};
 
 connector.cypherUpsertOne = function(user) {
   var response = new Q.defer();
@@ -102,13 +102,26 @@ connector.cypherUpsertOne = function(user) {
   db.query(cypherQueries.upsertOne, {userMap: userMap, screenName: userMap.screen_name},
       function(err, arr){
         if(err) {
-          response.reject(err)
+          response.reject(err);
         } else {
           response.resolve(userMap.screen_name);
         }
       });
   return response.promise;
-}
+};
+
+connector.cypherGetUnconnectedFriendsForHandle = function(handle) {
+  var response = new Q.defer();
+  db.query(cypherQueries.getRemainingUnconnectedUsers, {screenName: handle},
+      function(err, arr){
+        if(err) {
+          response.reject(err);
+        } else {
+          response.resolve(arr.map(function(one){ return one.sn; }));
+        }
+      });
+  return response.promise;
+};
 
 connector.getWebForHandle = function(screen_name){
   var followerResponse = new Q.defer();
@@ -136,6 +149,27 @@ connector.getWebForHandle = function(screen_name){
   getFriendsBatch();
 
   return Q.all([friendResponse.promise, followerResponse.promise]);
-}
+};
 
+connector.getWebForHandles = function(list) {
+  if(!list || !list.length || list.length === 0) {
+    throw new Error('Must supply a list of handles');
+  }
 
+  var idx = 0;
+  function getNext() {
+    var targetHandle = list[idx];
+    if(targetHandle) {
+      console.log('Getting web for ' + targetHandle);
+      connector.getWebForHandle(targetHandle).then( function(counts) {
+        console.log(targetHandle + ' completed.');
+        idx++;
+        if(list[idx]) getNext();
+        else console.log('List completed.');
+      }, logger);
+    }
+  }
+
+  //Kick it off
+  getNext();
+};

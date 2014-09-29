@@ -36,3 +36,18 @@ exports.upsertManyAndFriends = multiline(function() {/*
     MERGE targetNode-[:FOLLOWS]->friendNode
   )
 */});
+
+/*
+ * Parameters are:
+ *
+ * screenName - string, the handle of the person that is at the center of the graph.
+ * 
+ */
+exports.getRemainingUnconnectedUsers = multiline(function() {/*
+    MATCH (me:Person {screen_name: {screenName}})-[:FOLLOWS]-(other:Person)-[r]-(:Person)
+    WITH other.screen_name AS sn, other.followers_count + other.friends_count AS predRels, count(r) AS numRels
+    ORDER BY numRels
+    WHERE abs(predRels - numRels) > 50
+    RETURN sn, predRels, numRels
+    ORDER BY predRels ASC
+*/});

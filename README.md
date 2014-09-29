@@ -20,5 +20,15 @@ The way we've authenticated with the twitter API, rate limits kick in after 15 r
 
 Have fun!
 
+### Extending your graph
+To get friends/followers of other people in the graph, simply change the `targetHandle` to whomever you're curious about.
+If you want to get _all_ of the connections out to the next depth, i.e. (you)->(friend)->(friendOfFriend), that would be really tedious.
+Instead, run `node depthOne`. The script looks at your current graph to find friends and followers that appear to be incomplete.
+To judge completeness, I'm looking at the count of friends and followers twitter provides when you initially pull down the user
+and comparing with the actual number of relationships that node has in the graph. If it's off by more than 50, it's incomplete
+and will start pulling down the web of relationships for that handle.
+
+This will take a long time.
+
 ### Feedback is welcome
 This can be in the form of github issues, pull requests, tweets [@freethejazz](http://www.twitter.com/freethejazz), emails to my twitter handle @ that big G email provider, complaints written on $20 dollar bills mailed to me in Chicago, etc.
