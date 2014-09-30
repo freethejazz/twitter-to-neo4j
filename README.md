@@ -8,11 +8,25 @@ A hack to pull down a web of twitter friends and followers into Neo4j via Node.j
 * A Twitter account
 * A Twitter dev account ([https://dev.twitter.com/](https://dev.twitter.com/))
 * Set up a Twitter dev application([http://app.twitter.com/](http://app.twitter.com/)) and get your API key, API secret, Access token, and Access token secret.  (All under the API Keys tab of your application)
+* Add a `config.js` file in the root directory of the app, using the following template:
+```
+module.exports = {
+  twitterAuth: {
+    consumer_key: '',
+    consumer_secret: '',
+    access_token: '',
+    access_token_secret: ''
+  },
+  neo4j: {
+    dbPath: 'http://localhost:7474'
+  },
+  targetHandle: ''
+};
+```
 
 
 ### Usage
 
-1. Modify `config.js` on your local machine, substituting in your API credentials, location of your Neo4j instance, and the twitter handle you want to get the graph of.
 1. Run `node app` from the project's root directory.
 1. Watch the console output, or go have a sandwich (depending on how many friends/followers the user has).
 
