@@ -68,5 +68,18 @@ RETURN other,r,me
 LIMIT 10
 ```
 
+#### Who are some potential followers?
+This is a little tricker, and there are plenty of different and creative definitions of who is a potential follower. I start off by finding followers of my followers. Then, I narrow things down a bit by specifying that their description should include 'web' in it (this is optional, but gets specific types of potential followers). Then I connect how many of my followers they follow.  The idea here is that if they are followers of 100 of my followers, they're more likely to be interested in what I've got to say than if they're only following 1 of my followers. I'm also calculating the ratio of followers to friends as a naive gauge of influence.
+
+```
+MATCH (potential:Person)-[s:FOLLOWS]->(other:Person)-[r:FOLLOWS]->(me:Person {screen_name: '<your_twitter_handle>'})
+WHERE potential.description =~ '.*web.*'
+AND NOT (potential)-[:FOLLOWS]->(me)
+WITH potential.screen_name as sn, potential.followers_count as followers, potential.friends_count as friends, collect(other.screen_name) as links
+WHERE length(links) > 1
+RETURN sn, length(links) as linkCount, (followers*1.0)/friends as ffRat, followers, friends, links
+ORDER BY linkCount DESC
+```
+
 ### Feedback is welcome
 This can be in the form of github issues, pull requests, tweets [@freethejazz](http://www.twitter.com/freethejazz), emails to my twitter handle @ that big G email provider, complaints written on $20 dollar bills mailed to me in Chicago, etc.
