@@ -5,13 +5,8 @@ function genericErr(err) {
   console.log(err);
 }
 
-connector.cypherGetUnconnectedFriendsForHandle(config.targetHandle)
+connector.cypherGetUnconnectedUsersForHandle(config.targetHandle)
   .then(function(list){
-    console.log(list);
-    var newList = list.splice(0, 2);
-    return connector.getWebForHandles(newList);
+    connector.getWebForHandles(list);
   },
-  //.then(connector.getWebForHandle)
-  //.then(function() {
-  //  console.log('List completed for ' + targetHandle);
 genericErr);

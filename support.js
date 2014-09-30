@@ -24,7 +24,7 @@ var getRateLimitInfo = function(resp) {
 };
 
 var scheduleNextCall = function(rateLimitInfo, nextMethod, optParam){
-  if(rateLimitInfo.remainingRequests === 0) {
+  if(rateLimitInfo.remainingRequests === "0") {
     logger('Rate Limit Exceeded, waiting until '+ (new Date(rateLimitInfo.resetMs)));
     return setTimeout(nextMethod, rateLimitInfo.resetMs - Date.now(), optParam);
   } else {
@@ -110,9 +110,9 @@ connector.cypherUpsertOne = function(user) {
   return response.promise;
 };
 
-connector.cypherGetUnconnectedFriendsForHandle = function(handle) {
+connector.cypherGetUnconnectedUsersForHandle = function(handle) {
   var response = new Q.defer();
-  db.query(cypherQueries.getRemainingUnconnectedUsers, {screenName: handle},
+  db.query(cypherQueries.getUnconnectedUsers, {screenName: handle},
       function(err, arr){
         if(err) {
           response.reject(err);
