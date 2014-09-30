@@ -44,5 +44,29 @@ and will start pulling down the web of relationships for that handle.
 
 This will take a long time.
 
+### Analytics
+
+If you've pulled your extended twitter graph in, you might be tempted to do some analysis on it. Here are some examples of questions and the cypher to answer them.
+
+
+#### Of my followers, who are the most influential?
+Here, my definition of 'influential' is someone who has more followers than friends by 300 or greater.
+```
+match (me:Person {screen_name: '<your_twitter_handle>'})<-[s:FOLLOWS]-(m:Person)
+WHERE m.followers_count > m.friends_count
+AND m.followers_count > 300
+RETURN m,s,me
+LIMIT 50
+```
+
+#### Which of my followers are interested in <something>
+In this case, I'll search for JavaScript (and some capitalization alternatives).
+```
+MATCH (other)-[r:FOLLOWS]->(me {screen_name: '<your_twitter_handle>'})
+WHERE other.description =~ '.*[Jj]ava[Ss]cript.*'
+RETURN other,r,me
+LIMIT 10
+```
+
 ### Feedback is welcome
 This can be in the form of github issues, pull requests, tweets [@freethejazz](http://www.twitter.com/freethejazz), emails to my twitter handle @ that big G email provider, complaints written on $20 dollar bills mailed to me in Chicago, etc.
