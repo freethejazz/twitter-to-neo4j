@@ -50,7 +50,7 @@ If you've pulled your extended twitter graph in, you might be tempted to do some
 
 
 #### Of my followers, who are the most influential?
-Here, my definition of 'influential' is someone who has more followers than friends by 300 or greater.
+Here, my definition of 'influential' is someone who has more followers than friends and has at least 300 followers.
 ```
 match (me:Person {screen_name: '<your_twitter_handle>'})<-[s:FOLLOWS]-(m:Person)
 WHERE m.followers_count > m.friends_count
