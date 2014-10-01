@@ -48,7 +48,7 @@ exports.getUnconnectedUsers = multiline(function() {/*
     OPTIONAL MATCH (other)-[r]-(fof)
     WHERE fof <> me
     WITH other, other.followers_count + other.friends_count AS predRels, count(r) as numRels
-    WHERE abs(numRels - predRels) > 10
+    WHERE abs(numRels - predRels) > 10 and other.protected = false
     RETURN other.screen_name as sn, numRels, predRels
     ORDER BY predRels asc
 */});
